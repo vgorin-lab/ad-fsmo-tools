@@ -38,14 +38,12 @@ FSMO Roles, FSMO Role Holders, PowerShell FSMO, Get FSMO Roles, FSMO Check, Doma
 ## 🚀 Installation
 
 ### Option 1: Clone the repository
-
 ```powershell
 git clone https://github.com/vgorin-lab/ad-fsmo-tools.git
 cd ad-fsmo-tools
 ```
 
 ### Option 2: Download the script directly
-
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vgorin-lab/ad-fsmo-tools/main/Get-FSMORoles.ps1" -OutFile "Get-FSMORoles.ps1"
 ```
@@ -53,7 +51,6 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vgorin-lab/ad-fsmo-too
 ## ⚡ Quick Start
 
 Run the script in your current domain:
-
 ```powershell
 .\Get-FSMORoles.ps1
 ```
@@ -61,26 +58,22 @@ Run the script in your current domain:
 ## 📚 Examples
 
 ### Check roles in a specific domain
-
 ```powershell
 .\Get-FSMORoles.ps1 -Domain corp.contoso.com
 ```
 
 ### Save results to a variable
-
 ```powershell
 $fsmo = .\Get-FSMORoles.ps1
 $fsmo.PDCEmulator
 ```
 
 ### Run with verbose output
-
 ```powershell
 .\Get-FSMORoles.ps1 -Verbose
 ```
 
 ### Sample output
-
 ```text
 === FSMO Roles Check ===
 Domain        : contoso.com
