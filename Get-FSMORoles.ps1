@@ -84,7 +84,7 @@ $roles = [PSCustomObject]@{
 }
 
 # --- Output results ---
-Write-Output "`n=== FSMO Roles Check ==="
+Write-Output "=== FSMO Roles Check ==="
 Write-Output "Domain        : $Domain"
 Write-Output "Schema Master : $($roles.SchemaMaster)"
 Write-Output "Domain Naming : $($roles.DomainNamingMaster)"
