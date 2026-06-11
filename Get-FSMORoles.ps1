@@ -1,111 +1,110 @@
 <#
 .SYNOPSIS
-    Quickly identifies which domain controllers hold the five FSMO roles.
+    Gets current FSMO role owners in an Active Directory domain.
 .DESCRIPTION
-    This script queries Active Directory to determine which domain controllers
-    currently hold the five Flexible Single Master Operations (FSMO) roles:
+    Script connects to the specified AD forest and domain, retrieves all five FSMO role holders:
     - Schema Master
     - Domain Naming Master
-    - PDC Emulator
     - RID Master
+    - PDC Emulator
     - Infrastructure Master
-    
-    Useful for troubleshooting, migrations, and routine AD health checks.
-    
-    Companion tool for sysadmintips.ru Active Directory guides.
+    Output can be saved to a variable or piped to other cmdlets.
 .PARAMETER Domain
-    The domain to query. Defaults to the current user's domain.
+    Domain FQDN. If not specified, uses USERDNSDOMAIN environment variable.
 .EXAMPLE
     .\Get-FSMORoles.ps1
-    
-    Displays FSMO role holders for the current domain.
+    Determines FSMO roles in the user's current domain.
 .EXAMPLE
-    .\Get-FSMORoles.ps1 -Domain "contoso.com"
-    
-    Displays FSMO role holders for the specified domain.
-.NOTES
-    Author: Vlad Gorin
-    Website: sysadmintips.ru
-    GitHub: github.com/vgorin-lab
-    Requires: Active Directory PowerShell module (RSAT-AD-PowerShell)
+    .\Get-FSMORoles.ps1 -Domain corp.contoso.com
+    Checks roles in the specified domain.
+.EXAMPLE
+    $roles = .\Get-FSMORoles.ps1
+    Saves the result to a variable for further processing.
 .LINK
+    Detailed article about FSMO role management:
     https://sysadmintips.ru/kak-proverit-i-uznat-roli-fsmo-v-active-directory.html
+.NOTES
+    Author: Vlad Gorin (vgorin-lab)
+    License: MIT
+    Requires: ActiveDirectory PowerShell module
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory = $false)]
+    [ValidateNotNullOrEmpty()]
     [string]$Domain = $env:USERDNSDOMAIN
 )
 
-#Requires -Modules ActiveDirectory
+# --- Constants and settings ---
+$mySiteUrl = "https://sysadmintips.ru/kak-proverit-i-uznat-roli-fsmo-v-active-directory.html"
+$ADModuleName = "ActiveDirectory"
 
-Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host " Active Directory FSMO Roles Check" -ForegroundColor Cyan
-Write-Host " Author: Vlad Gorin | sysadmintips.ru" -ForegroundColor Cyan
-Write-Host "========================================`n" -ForegroundColor Cyan
+# --- Check if domain is provided ---
+if (-not $Domain) {
+    Write-Error "Domain name is not specified and USERDNSDOMAIN environment variable is empty."
+    exit 1
+}
+
+Write-Verbose "Target domain: $Domain"
+
+# --- Load and verify ActiveDirectory module ---
+if (-not (Get-Module -ListAvailable -Name $ADModuleName)) {
+    Write-Error "Active Directory PowerShell module '$ADModuleName' is not installed. Please install RSAT-AD-PowerShell feature."
+    exit 1
+}
 
 try {
-    Write-Host "Querying domain: $Domain" -ForegroundColor Gray
-    Write-Host "Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`n" -ForegroundColor Gray
-    
-    # Get forest-level FSMO roles
-    $forest = Get-ADForest -Identity $Domain -ErrorAction Stop
-    
-    # Get domain-level FSMO roles
-    $domainObj = Get-ADDomain -Identity $Domain -ErrorAction Stop
-    
-    Write-Host "--- Forest-Level FSMO Roles ---" -ForegroundColor Yellow
-    Write-Host "Schema Master:        " -NoNewline
-    Write-Host "$($forest.SchemaMaster)" -ForegroundColor Green
-    Write-Host "  → Manages updates to the AD schema" -ForegroundColor DarkGray
-    
-    Write-Host "Domain Naming Master: " -NoNewline
-    Write-Host "$($forest.DomainNamingMaster)" -ForegroundColor Green
-    Write-Host "  → Controls addition/removal of domains in forest" -ForegroundColor DarkGray
-    
-    Write-Host "`n--- Domain-Level FSMO Roles ---" -ForegroundColor Yellow
-    Write-Host "PDC Emulator:         " -NoNewline
-    Write-Host "$($domainObj.PDCEmulator)" -ForegroundColor Green
-    Write-Host "  → Time sync, password changes, Group Policy updates" -ForegroundColor DarkGray
-    
-    Write-Host "RID Master:           " -NoNewline
-    Write-Host "$($domainObj.RIDMaster)" -ForegroundColor Green
-    Write-Host "  → Allocates RID pools for security principals" -ForegroundColor DarkGray
-    
-    Write-Host "Infrastructure Master: " -NoNewline
-    Write-Host "$($domainObj.InfrastructureMaster)" -ForegroundColor Green
-    Write-Host "  → Updates cross-domain references" -ForegroundColor DarkGray
-    
-    # Check if all roles are on the same DC (potential risk)
-    $allRoles = @(
-        $forest.SchemaMaster,
-        $forest.DomainNamingMaster,
-        $domainObj.PDCEmulator,
-        $domainObj.RIDMaster,
-        $domainObj.InfrastructureMaster
-    )
-    
-    $uniqueDCs = $allRoles | Sort-Object -Unique
-    
-    Write-Host "`n--- Analysis ---" -ForegroundColor Yellow
-    if ($uniqueDCs.Count -eq 1) {
-        Write-Host "⚠ WARNING: All FSMO roles are on a single DC: $($uniqueDCs[0])" -ForegroundColor Red
-        Write-Host "  Consider distributing roles for better fault tolerance." -ForegroundColor DarkGray
-    } else {
-        Write-Host "✓ FSMO roles distributed across $($uniqueDCs.Count) domain controllers" -ForegroundColor Green
-        Write-Host "  DCs holding roles: $($uniqueDCs -join ', ')" -ForegroundColor DarkGray
-    }
-    
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host " For detailed FSMO management guide:" -ForegroundColor Cyan
-    Write-Host " https://sysadmintips.ru/kak-proverit-i-uznat-roli-fsmo-v-active-directory.html" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
+    Import-Module $ADModuleName -ErrorAction Stop
+    Write-Verbose "Module '$ADModuleName' imported successfully."
 } catch {
-    Write-Host "`n❌ ERROR: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Make sure you have:" -ForegroundColor Yellow
-    Write-Host "  1. Active Directory PowerShell module installed" -ForegroundColor Yellow
-    Write-Host "  2. Appropriate permissions to query AD" -ForegroundColor Yellow
-    Write-Host "  3. Network connectivity to domain controllers`n" -ForegroundColor Yellow
+    Write-Error "Failed to import Active Directory module: $_"
+    exit 1
 }
+
+# --- Get AD objects ---
+try {
+    Write-Verbose "Getting AD forest for domain: $Domain"
+    $forest = Get-ADForest -Identity $Domain -ErrorAction Stop
+
+    Write-Verbose "Getting AD domain for domain: $Domain"
+    $domain = Get-ADDomain -Identity $Domain -ErrorAction Stop
+} catch {
+    Write-Error "Failed to retrieve AD objects for domain '$Domain': $_"
+    exit 1
+}
+
+# --- Collect roles ---
+$roles = [PSCustomObject]@{
+    SchemaMaster         = $forest.SchemaMaster
+    DomainNamingMaster   = $forest.DomainNamingMaster
+    RIDMaster            = $domain.RIDMaster
+    PDCEmulator          = $domain.PDCEmulator
+    InfrastructureMaster = $domain.InfrastructureMaster
+}
+
+# --- Output results ---
+Write-Output "`n=== FSMO Roles Check ==="
+Write-Output "Domain        : $Domain"
+Write-Output "Schema Master : $($roles.SchemaMaster)"
+Write-Output "Domain Naming : $($roles.DomainNamingMaster)"
+Write-Output "RID Master    : $($roles.RIDMaster)"
+Write-Output "PDC Emulator  : $($roles.PDCEmulator)"
+Write-Output "Infrastructure: $($roles.InfrastructureMaster)"
+
+# --- Warning if any role is missing ---
+$missingRoles = @()
+if (-not $roles.SchemaMaster) { $missingRoles += "Schema Master" }
+if (-not $roles.DomainNamingMaster) { $missingRoles += "Domain Naming Master" }
+if (-not $roles.RIDMaster) { $missingRoles += "RID Master" }
+if (-not $roles.PDCEmulator) { $missingRoles += "PDC Emulator" }
+if (-not $roles.InfrastructureMaster) { $missingRoles += "Infrastructure Master" }
+
+if ($missingRoles.Count -gt 0) {
+    Write-Warning "Some FSMO roles could not be retrieved: $($missingRoles -join ', ')"
+}
+
+Write-Output "`nFor more details visit: $mySiteUrl"
+
+# --- Return object to pipeline ---
+return $roles
