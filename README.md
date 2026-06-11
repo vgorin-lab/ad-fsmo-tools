@@ -7,6 +7,10 @@ PowerShell script for checking FSMO (Flexible Single Master Operations) role hol
 
 Quickly identify which domain controllers hold FSMO roles — critical for maintenance, disaster recovery, and troubleshooting domain replication issues.
 
+## 🏷️ Keywords
+
+FSMO Roles, FSMO Role Holders, PowerShell FSMO, Get FSMO Roles, FSMO Check, Domain Controller Roles, Schema Master, Domain Naming Master, RID Master, PDC Emulator, Infrastructure Master.
+
 ## 📖 Table of Contents
 
 * [Features](#features)
